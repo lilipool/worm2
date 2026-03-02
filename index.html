@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slingshot Worms</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main menu overlay -->
+        <div id="main-menu" class="overlay active">
+            <h1>Slingshot Worms</h1>
+            <p>Selecione o número de jogadores:</p>
+            <div class="player-select">
+                <button class="player-btn" data-players="2">2 Jogadores</button>
+                <button class="player-btn" data-players="3">3 Jogadores</button>
+                <button class="player-btn" data-players="4">4 Jogadores</button>
+            </div>
+            <div class="instructions">
+                <p><strong>Como jogar:</strong></p>
+                <p>No seu turno, clique no seu worm e arraste para trás para mirar.</p>
+                <p>Solte para atirar, destrua o terreno e elimine seus inimigos!</p>
+            </div>
+        </div>
+
+        <!-- In-game HUD overlay -->
+        <div id="hud" class="overlay">
+            <div class="top-bar">
+                <div id="turn-indicator">Turno: Jogador 1</div>
+                <div id="timer">30</div>
+            </div>
+            <div id="health-bars" class="health-container">
+                <!-- Health bars dynamically generated here -->
+            </div>
+        </div>
+        
+        <!-- Game Over overlay -->
+        <div id="game-over" class="overlay">
+            <h1 id="winner-text">Jogador X Venceu!</h1>
+            <button id="restart-btn">Menu Principal</button>
+        </div>
+
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Scripts -->
+    <script src="game.js" type="module"></script>
+</body>
+</html>

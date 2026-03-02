@@ -1,0 +1,239 @@
+:root {
+    --bg-color: #1a1a24;
+    --primary: #ff4757;
+    --secondary: #2ed573;
+    --text-light: #f1f2f6;
+    --hud-bg: rgba(0, 0, 0, 0.4);
+    --font-main: 'Inter', sans-serif;
+
+    --player-1: #ff4757;
+    /* Red */
+    --player-2: #1e90ff;
+    /* Blue */
+    --player-3: #2ed573;
+    /* Green */
+    --player-4: #ffa502;
+    /* Orange */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-light);
+    font-family: var(--font-main);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 100%;
+    max-height: 800px;
+    background-color: #000;
+    /* Will be covered by canvas */
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: crosshair;
+}
+
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Main Menu & Game Over*/
+#main-menu,
+#game-over {
+    justify-content: center;
+    align-items: center;
+    background: rgba(26, 26, 36, 0.85);
+    backdrop-filter: blur(8px);
+}
+
+h1 {
+    font-size: 4rem;
+    font-weight: 900;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+#main-menu p {
+    font-size: 1.2rem;
+    margin-bottom: 30px;
+}
+
+.player-select {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    font-family: var(--font-main);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    background: #ff6b81;
+    box-shadow: 0 6px 12px rgba(255, 71, 87, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+.instructions {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 450px;
+}
+
+.instructions p {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+/* HUD */
+#hud {
+    justify-content: space-between;
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 40px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+}
+
+#turn-indicator {
+    font-size: 1.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    transition: color 0.3s;
+}
+
+#timer {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 0 15px var(--primary);
+}
+
+.health-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding: 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 100%);
+}
+
+.player-health {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.player-name {
+    font-size: 1rem;
+    font-weight: bold;
+    text-shadow: 1px 1px 3px black;
+}
+
+.health-bar-bg {
+    width: 120px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.health-bar-fill {
+    height: 100%;
+    width: 100%;
+    transition: width 0.3s ease;
+}
+
+.hp-p1 .health-bar-fill {
+    background-color: var(--player-1);
+}
+
+.hp-p2 .health-bar-fill {
+    background-color: var(--player-2);
+}
+
+.hp-p3 .health-bar-fill {
+    background-color: var(--player-3);
+}
+
+.hp-p4 .health-bar-fill {
+    background-color: var(--player-4);
+}
+
+.hp-p1 {
+    color: var(--player-1);
+}
+
+.hp-p2 {
+    color: var(--player-2);
+}
+
+.hp-p3 {
+    color: var(--player-3);
+}
+
+.hp-p4 {
+    color: var(--player-4);
+}
