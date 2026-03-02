@@ -47,6 +47,9 @@ class Terrain {
         this.ctx.fillRect(0, 0, this.width, yBase + 100);
 
         this.ctx.globalCompositeOperation = 'source-over';
+
+        // Cache pixel data for instantaneous collision detection
+        this.collisionData = this.ctx.getImageData(0, 0, this.width, this.height);
     }
 
     draw(ctx) {
@@ -59,13 +62,20 @@ class Terrain {
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
         this.ctx.fill();
         this.ctx.globalCompositeOperation = 'source-over';
+
+        // Update cached pixel data after destruction
+        // It's much faster to do this once per explosion than via isSolid on every frame.
+        this.collisionData = this.ctx.getImageData(0, 0, this.width, this.height);
     }
 
     isSolid(x, y) {
-        if (x < 0 || x >= this.width || y >= this.height) return false;
-        if (y < 0) return false;
-        const pixelData = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return pixelData[3] > 0;
+        const px = Math.floor(x);
+        const py = Math.floor(y);
+        if (px < 0 || px >= this.width || py >= this.height) return false;
+        if (py < 0) return false;
+
+        const index = (py * this.width + px) * 4;
+        return this.collisionData.data[index + 3] > 0;
     }
 }
 
@@ -98,10 +108,25 @@ class Worm {
 
         // Check collision at bottom tip
         if (terrain.isSolid(nextX, nextY + this.radius)) {
-            // Find exactly where the ground is by scanning up
-            while (terrain.isSolid(nextX, nextY + this.radius - 1) && this.vy > 0) {
+            // Find exactly where the ground is by scanning up for small slopes
+            let climbSteps = 0;
+            while (terrain.isSolid(nextX, nextY + this.radius - 1) && climbSteps < 12) {
                 nextY -= 1;
+                climbSteps++;
             }
+
+            // If it's too high to step over (a wall), undo horizontal movement
+            if (terrain.isSolid(nextX, nextY + this.radius - 1)) {
+                nextX = this.x;      // Revert X
+                this.vx *= -0.3;     // Bounce slightly off wall
+
+                // Keep falling vertically
+                nextY = this.y + this.vy;
+                while (terrain.isSolid(nextX, nextY + this.radius - 1)) {
+                    nextY -= 1;
+                }
+            }
+
             this.vy = 0;
             this.vx *= 0.8; // friction
             this.isGrounded = true;
@@ -112,9 +137,9 @@ class Worm {
         this.y = nextY;
 
         // Keep in bounds
-        if (this.x < this.radius) this.x = this.radius;
-        if (this.x > Config.width - this.radius) this.x = Config.width - this.radius;
-        if (this.y > Config.height + 100) this.hp = 0; // Fell off screen (if we eventually open the bottom)
+        if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
+        if (this.x > Config.width - this.radius) { this.x = Config.width - this.radius; this.vx *= -0.5; }
+        if (this.y > Config.height + 100) this.hp = 0; // Fell off screen
     }
 
     draw(ctx, isActive) {
