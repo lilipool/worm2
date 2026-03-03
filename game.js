@@ -71,8 +71,15 @@ class Terrain {
     isSolid(x, y) {
         const px = Math.floor(x);
         const py = Math.floor(y);
-        if (px < 0 || px >= this.width || py >= this.height) return false;
+
+        // Out of bounds horizontally is hard wall
+        if (px < 0 || px >= this.width) return true;
+
+        // Out of bounds vertically (above screen) is sky/empty
         if (py < 0) return false;
+
+        // Out of bounds vertically (below screen) is hard floor
+        if (py >= this.height) return true;
 
         const index = (py * this.width + px) * 4;
         return this.collisionData.data[index + 3] > 0;
@@ -106,30 +113,36 @@ class Worm {
 
         this.isGrounded = false;
 
-        // Check collision at bottom tip
-        if (terrain.isSolid(nextX, nextY + this.radius)) {
-            // Find exactly where the ground is by scanning up for small slopes
-            let climbSteps = 0;
-            while (terrain.isSolid(nextX, nextY + this.radius - 1) && climbSteps < 12) {
+        // Resolve collision by checking around the worm's center and bottom
+        let maxClimb = 15;
+        let wasSolid = false;
+
+        // Empurrar para cima se estiver afundado
+        while (terrain.isSolid(nextX, nextY + this.radius - 2) && maxClimb > 0) {
+            nextY -= 1;
+            maxClimb--;
+            wasSolid = true;
+        }
+
+        // Se mesmo subindo o maximo continua preso (parede reta), desfaz o movimento X
+        if (terrain.isSolid(nextX, nextY + this.radius - 2)) {
+            nextX = this.x; // Block horizontal movement
+            this.vx *= -0.3; // Small bounce
+
+            // Re-apply vertical movement with blocked X
+            nextY = this.y + this.vy;
+            let fallClimb = 15;
+            while (terrain.isSolid(nextX, nextY + this.radius - 2) && fallClimb > 0) {
                 nextY -= 1;
-                climbSteps++;
+                fallClimb--;
+                wasSolid = true;
             }
+        }
 
-            // If it's too high to step over (a wall), undo horizontal movement
-            if (terrain.isSolid(nextX, nextY + this.radius - 1)) {
-                nextX = this.x;      // Revert X
-                this.vx *= -0.3;     // Bounce slightly off wall
-
-                // Keep falling vertically
-                nextY = this.y + this.vy;
-                while (terrain.isSolid(nextX, nextY + this.radius - 1)) {
-                    nextY -= 1;
-                }
-            }
-
+        if (wasSolid || terrain.isSolid(nextX, nextY + this.radius + 1)) {
             this.vy = 0;
             // Aumentar o atrito se encostou no chao
-            this.vx *= 0.85;
+            this.vx *= 0.82;
             this.isGrounded = true;
         } else {
             // Atrito no ar para nao voar indefinidamente para o lado
@@ -447,7 +460,13 @@ class Game {
         const spacing = Config.width / (numPlayers + 1);
         for (let i = 0; i < numPlayers; i++) {
             const spawnX = spacing * (i + 1);
-            const spawnY = 100; // Start at top to fall
+            let spawnY = 0; // Começa a verificar do topo da tela
+
+            // Vai descendo até encostar no chão do terreno
+            while (!this.terrain.isSolid(spawnX, spawnY + 12) && spawnY < Config.height) {
+                spawnY += 1;
+            }
+
             this.players.push(new Worm(i, spawnX, spawnY, Config.colors[i]));
         }
 
