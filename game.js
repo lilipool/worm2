@@ -350,6 +350,9 @@ class Game {
         this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
         this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+
+        // Keyboard bindings
+        window.addEventListener('keydown', (e) => this.onKeyDown(e));
     }
 
     getMousePos(evt) {
@@ -392,24 +395,29 @@ class Game {
     onMouseUp(e) {
         if (!this.isAiming) return;
         this.isAiming = false;
+    }
 
-        const currentPlayer = this.players[this.currentPlayerIndex];
-        const dx = this.aimStartPos.x - this.aimCurrentPos.x;
-        const dy = this.aimStartPos.y - this.aimCurrentPos.y;
+    onKeyDown(e) {
+        if (e.code === 'Space' && this.isAiming) {
+            const currentPlayer = this.players[this.currentPlayerIndex];
+            const dx = this.aimStartPos.x - this.aimCurrentPos.x;
+            const dy = this.aimStartPos.y - this.aimCurrentPos.y;
 
-        const k = 0.05;
-        let vx = dx * k;
-        let vy = dy * k;
+            const k = 0.05;
+            let vx = dx * k;
+            let vy = dy * k;
 
-        const maxForce = 22;
-        const forceMag = Math.hypot(vx, vy);
-        if (forceMag > maxForce) {
-            vx = (vx / forceMag) * maxForce;
-            vy = (vy / forceMag) * maxForce;
-        }
+            const maxForce = 22;
+            const forceMag = Math.hypot(vx, vy);
+            if (forceMag > maxForce) {
+                vx = (vx / forceMag) * maxForce;
+                vy = (vy / forceMag) * maxForce;
+            }
 
-        if (forceMag > 2) {
-            this.fireProjectile(currentPlayer.x, currentPlayer.y, vx, vy);
+            if (forceMag > 2) {
+                this.fireProjectile(currentPlayer.x, currentPlayer.y, vx, vy);
+                this.isAiming = false;
+            }
         }
     }
 
