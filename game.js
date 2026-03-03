@@ -4,7 +4,7 @@ const Config = {
     height: 1080, // Internal logical height
     gravity: 0.2, // Simple integer/float gravity for our custom physics
     colors: ['#ff4757', '#1e90ff', '#2ed573', '#ffa502'],
-    turnTime: 30
+    turnTime: 10
 };
 
 class Terrain {
@@ -404,7 +404,7 @@ class Game {
             this.keys[key] = true;
         }
 
-        if (e.code === 'Space' && this.isRunning && this.projectiles.length === 0 && this.mousePos) {
+        if ((e.code === 'Space' || e.code === 'Enter') && this.isRunning && this.projectiles.length === 0 && this.mousePos) {
             const currentPlayer = this.players[this.currentPlayerIndex];
 
             const dx = this.mousePos.x - currentPlayer.x;
