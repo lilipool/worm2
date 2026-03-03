@@ -330,9 +330,7 @@ class Game {
         this.turnTimeLeft = Config.turnTime;
         this.timerInterval = null;
         this.projectiles = [];
-        this.isAiming = false;
-        this.aimStartPos = { x: 0, y: 0 };
-        this.aimCurrentPos = { x: 0, y: 0 };
+        this.mousePos = null;
         this.particles = [];
 
         // Generate background stars
@@ -347,9 +345,7 @@ class Game {
         }
 
         // Mouse bindings
-        this.canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
         this.canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
-        this.canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
 
         // Keyboard bindings
         window.addEventListener('keydown', (e) => this.onKeyDown(e));
@@ -365,43 +361,24 @@ class Game {
         };
     }
 
-    onMouseDown(e) {
+    onMouseMove(e) {
         if (!this.isRunning || this.players.length === 0) return;
-        // Don't aim if a projectile is busy
-        if (this.projectiles.length > 0) return;
+        this.mousePos = this.getMousePos(e);
 
-        const pos = this.getMousePos(e);
-        const currentPlayer = this.players[this.currentPlayerIndex];
-
-        // Check if clicking near active worm
-        const dx = pos.x - currentPlayer.x;
-        const dy = pos.y - currentPlayer.y;
-        if (Math.hypot(dx, dy) < currentPlayer.radius * 4) {
-            this.isAiming = true;
-            this.aimStartPos = pos;
-            this.aimCurrentPos = pos;
+        if (this.projectiles.length === 0) {
+            const currentPlayer = this.players[this.currentPlayerIndex];
+            if (currentPlayer) {
+                currentPlayer.facingRight = this.mousePos.x > currentPlayer.x;
+            }
         }
     }
 
-    onMouseMove(e) {
-        if (!this.isAiming) return;
-        this.aimCurrentPos = this.getMousePos(e);
-
-        // Face crosshair
-        const currentPlayer = this.players[this.currentPlayerIndex];
-        currentPlayer.facingRight = this.aimCurrentPos.x < this.aimStartPos.x;
-    }
-
-    onMouseUp(e) {
-        if (!this.isAiming) return;
-        this.isAiming = false;
-    }
-
     onKeyDown(e) {
-        if (e.code === 'Space' && this.isAiming) {
+        if (e.code === 'Space' && this.isRunning && this.projectiles.length === 0 && this.mousePos) {
             const currentPlayer = this.players[this.currentPlayerIndex];
-            const dx = this.aimStartPos.x - this.aimCurrentPos.x;
-            const dy = this.aimStartPos.y - this.aimCurrentPos.y;
+
+            const dx = this.mousePos.x - currentPlayer.x;
+            const dy = this.mousePos.y - currentPlayer.y;
 
             const k = 0.05;
             let vx = dx * k;
@@ -416,7 +393,6 @@ class Game {
 
             if (forceMag > 2) {
                 this.fireProjectile(currentPlayer.x, currentPlayer.y, vx, vy);
-                this.isAiming = false;
             }
         }
     }
@@ -618,10 +594,10 @@ class Game {
         }
 
         // Draw aiming trajectory
-        if (this.isAiming) {
+        if (this.isRunning && this.projectiles.length === 0 && this.mousePos) {
             const currentPlayer = this.players[this.currentPlayerIndex];
-            const dx = this.aimStartPos.x - this.aimCurrentPos.x;
-            const dy = this.aimStartPos.y - this.aimCurrentPos.y;
+            const dx = this.mousePos.x - currentPlayer.x;
+            const dy = this.mousePos.y - currentPlayer.y;
 
             const k = 0.05;
             let vx = dx * k;
@@ -655,12 +631,12 @@ class Game {
                 if (this.terrain && this.terrain.isSolid(simX, simY)) break;
             }
 
-            // Draw slingshot line to show pull distance and angle
+            // Draw aiming line to show direction and power
             this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(currentPlayer.x, currentPlayer.y);
-            this.ctx.lineTo(currentPlayer.x - dx, currentPlayer.y - dy);
+            this.ctx.lineTo(currentPlayer.x + dx, currentPlayer.y + dy);
             this.ctx.stroke();
         }
     }
