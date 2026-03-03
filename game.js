@@ -128,8 +128,12 @@ class Worm {
             }
 
             this.vy = 0;
-            this.vx *= 0.8; // friction
+            // Aumentar o atrito se encostou no chao
+            this.vx *= 0.85;
             this.isGrounded = true;
+        } else {
+            // Atrito no ar para nao voar indefinidamente para o lado
+            this.vx *= 0.98;
         }
 
         // Apply
@@ -333,6 +337,13 @@ class Game {
         this.mousePos = null;
         this.particles = [];
 
+        this.keys = {
+            w: false,
+            a: false,
+            s: false,
+            d: false
+        };
+
         // Generate background stars
         this.stars = [];
         for (let i = 0; i < 150; i++) {
@@ -349,6 +360,7 @@ class Game {
 
         // Keyboard bindings
         window.addEventListener('keydown', (e) => this.onKeyDown(e));
+        window.addEventListener('keyup', (e) => this.onKeyUp(e));
     }
 
     getMousePos(evt) {
@@ -374,6 +386,11 @@ class Game {
     }
 
     onKeyDown(e) {
+        const key = e.key.toLowerCase();
+        if (this.keys.hasOwnProperty(key)) {
+            this.keys[key] = true;
+        }
+
         if (e.code === 'Space' && this.isRunning && this.projectiles.length === 0 && this.mousePos) {
             const currentPlayer = this.players[this.currentPlayerIndex];
 
@@ -394,6 +411,13 @@ class Game {
             if (forceMag > 2) {
                 this.fireProjectile(currentPlayer.x, currentPlayer.y, vx, vy);
             }
+        }
+    }
+
+    onKeyUp(e) {
+        const key = e.key.toLowerCase();
+        if (this.keys.hasOwnProperty(key)) {
+            this.keys[key] = false;
         }
     }
 
@@ -523,6 +547,26 @@ class Game {
     }
 
     update(deltaTime) {
+        // Player input for movement
+        if (this.isRunning && this.projectiles.length === 0) {
+            const currentPlayer = this.players[this.currentPlayerIndex];
+            if (currentPlayer && currentPlayer.hp > 0) {
+                const moveSpeed = 2;
+                const jumpForce = -7;
+
+                if (this.keys.a) {
+                    currentPlayer.vx -= moveSpeed * 0.2;
+                }
+                if (this.keys.d) {
+                    currentPlayer.vx += moveSpeed * 0.2;
+                }
+                if (this.keys.w && currentPlayer.isGrounded) {
+                    currentPlayer.vy = jumpForce;
+                    currentPlayer.isGrounded = false;
+                }
+            }
+        }
+
         // Physics and logic update
         for (let player of this.players) {
             if (player.hp > 0) {
