@@ -30,13 +30,8 @@ class Terrain {
         this.ctx.beginPath();
         this.ctx.moveTo(0, this.height);
 
-        let yBase = this.height * 0.6;
-        for (let x = 0; x <= this.width; x += 10) {
-            // Procedural hills
-            let y = yBase + Math.sin(x * 0.005) * 150 + Math.sin(x * 0.02) * 50 + Math.cos(x * 0.05) * 20;
-            this.ctx.lineTo(x, y);
-        }
-
+        let yBase = this.height * 0.8; // Terreno plano um pouco mais abaixo
+        this.ctx.lineTo(this.width, yBase);
         this.ctx.lineTo(this.width, this.height);
         this.ctx.closePath();
         this.ctx.fill();
@@ -44,7 +39,7 @@ class Terrain {
         // Grass layer on top
         this.ctx.globalCompositeOperation = 'source-atop';
         this.ctx.fillStyle = '#27ae60'; // Green grass
-        this.ctx.fillRect(0, 0, this.width, yBase + 100);
+        this.ctx.fillRect(0, yBase, this.width, 30); // Grama fina no topo do chão plano
 
         this.ctx.globalCompositeOperation = 'source-over';
 
@@ -93,7 +88,7 @@ class Worm {
         this.y = y;
         this.radius = 12;
         this.color = color;
-        this.hp = 100;
+        this.score = 0; // Distancia maxima (Score)
         this.vx = 0;
         this.vy = 0;
         this.isGrounded = false;
@@ -153,10 +148,14 @@ class Worm {
         this.x = nextX;
         this.y = nextY;
 
-        // Keep in bounds
+        // Keep in bounds (only left and bottom, right is infinite for score)
         if (this.x < this.radius) { this.x = this.radius; this.vx *= -0.5; }
-        if (this.x > Config.width - this.radius) { this.x = Config.width - this.radius; this.vx *= -0.5; }
-        if (this.y > Config.height + 100) this.hp = 0; // Fell off screen
+        if (this.y > Config.height + 100) this.y = Config.height - 50; // Reseta pro meio se cair do mapa
+
+        // Update max score based on distance
+        if (this.x > this.score) {
+            this.score = Math.floor(this.x);
+        }
     }
 
     draw(ctx, isActive) {
@@ -421,8 +420,14 @@ class Game {
                 vy = (vy / forceMag) * maxForce;
             }
 
-            if (forceMag > 2) {
-                this.fireProjectile(currentPlayer.x, currentPlayer.y, vx, vy);
+            if (forceMag > 2 && currentPlayer.isGrounded) {
+                // Ao inves de atirar projetil, o player pula
+                currentPlayer.vx = vx;
+                currentPlayer.vy = vy;
+                currentPlayer.isGrounded = false;
+
+                // End turn after jumping
+                this.nextTurn();
             }
         }
     }
@@ -471,6 +476,8 @@ class Game {
         }
 
         this.currentPlayerIndex = 0;
+        this.currentRound = 1;
+        this.maxRounds = 3;
         this.turnTimeLeft = Config.turnTime;
 
         // Setup HUD
@@ -492,9 +499,7 @@ class Game {
             playerDiv.className = `player-health hp-p${i + 1}`;
             playerDiv.innerHTML = `
                 <div class="player-name">P${i + 1}</div>
-                <div class="health-bar-bg">
-                    <div class="health-bar-fill" id="hp-fill-p${i}" style="width: 100%"></div>
-                </div>
+                <div class="score-display" id="score-p${i}" style="font-size: 1.5rem; font-weight: bold; padding-top: 5px;">0m</div>
             `;
             this.healthContainer.appendChild(playerDiv);
         }
@@ -502,7 +507,7 @@ class Game {
     }
 
     updateTurnIndicator() {
-        this.turnIndicator.innerText = `Turno: Jogador ${this.currentPlayerIndex + 1}`;
+        this.turnIndicator.innerText = `Rodada ${this.currentRound}/${this.maxRounds} | Turno: Jogador ${this.currentPlayerIndex + 1}`;
         this.turnIndicator.style.color = Config.colors[this.currentPlayerIndex];
     }
 
@@ -524,24 +529,43 @@ class Game {
     }
 
     nextTurn() {
-        // Logic to move to next alive player
         console.log('Next turn!');
-        let tries = 0;
-        do {
-            this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-            tries++;
-        } while (this.players[this.currentPlayerIndex].hp <= 0 && tries <= this.players.length);
+
+        this.currentPlayerIndex++;
+        if (this.currentPlayerIndex >= this.players.length) {
+            this.currentPlayerIndex = 0;
+            this.currentRound++;
+        }
+
+        if (this.currentRound > this.maxRounds) {
+            this.determineWinner();
+            return;
+        }
 
         this.updateTurnIndicator();
         this.startTurnTimer();
     }
 
-    updateHealthBar(id, hp) {
-        const bar = document.getElementById(`hp-fill-p${id}`);
-        if (bar) {
-            const h = Math.max(0, Math.min(100, hp));
-            bar.style.width = `${h}%`;
+    updateScoreDisplay() {
+        for (let i = 0; i < this.players.length; i++) {
+            const scoreEl = document.getElementById(`score-p${i}`);
+            if (scoreEl) {
+                // Diminui um fator do scoreX pra virar "metros" 
+                scoreEl.innerText = `${Math.floor(this.players[i].score / 10)}m`;
+            }
         }
+    }
+
+    determineWinner() {
+        let winnerIndex = 0;
+        let maxScore = -1;
+        for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i].score > maxScore) {
+                maxScore = this.players[i].score;
+                winnerIndex = i;
+            }
+        }
+        this.endGame(winnerIndex);
     }
 
     endGame(winnerIndex) {
@@ -610,12 +634,8 @@ class Game {
             }
         }
 
-        // Check game over
-        const alivePlayers = this.players.filter(p => p.hp > 0);
-        if (alivePlayers.length <= 1 && this.isRunning) {
-            const winner = alivePlayers.length === 1 ? alivePlayers[0].id : -1;
-            this.endGame(winner);
-        }
+        // Update UI scores
+        this.updateScoreDisplay();
     }
 
     draw() {
